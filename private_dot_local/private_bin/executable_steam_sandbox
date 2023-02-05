@@ -1,0 +1,99 @@
+#!/usr/bin/bash
+# shellcheck disable=SC2155,SC1091
+source "$HOME/.local/bin/sandbox"
+
+STEAM_HOME="$HOME/var/prefix/steam"
+
+main() {
+	sandbox_exec "$@"
+}
+
+sandbox_init
+sandbox_init_env
+sandbox_init_xdg
+
+bind_base
+bind_dbus
+bind_gnome
+bind_x11
+bind_wayland
+bind_gpu
+bind_sound
+bind_shader_cache
+sandbox_args+=(
+	--bind "$STEAM_HOME" "$HOME"
+	--setenv PATH "$HOME/.local/bin:/usr/bin:/usr/sbin:/bin:/sbin"
+)
+robind \
+	"$XDG_CONFIG_HOME/dircolors"
+
+# change_hostname steam_sandbox
+
+copy \
+	"$HOME/.bashrc" "$STEAM_HOME/.bashrc"
+
+DEBUG 1 "bind shared directories"
+bind \
+	"$HOME/downloads" \
+	"$HOME/music" \
+	"$HOME/pictures/gaming" \
+	"$HOME/tmp" \
+	"$HOME/.pki" \
+	"$HOME/.wine" \
+	"$HOME/var/wine" \
+	"$XDG_DATA_HOME/icons" \
+	"$XDG_DATA_HOME/applications" \
+	"$XDG_CONFIG_HOME/pulse" \
+	"/var/lib/bluetooth"
+
+# steam libraries
+DEBUG 1 "bind steam libraries"
+bind "/run/media/$USER/"*/steam
+
+# steam
+DEBUG 1 "bind steam files"
+bind \
+	"$HOME/.steam" \
+	"$HOME/.steampath" \
+	"$HOME/.steampid" \
+	"$XDG_DATA_HOME/Steam" \
+	"$XDG_CONFIG_HOME/cef_user_data" \
+	"$XDG_CONFIG_HOME/proton" \
+	"$XDG_DATA_HOME/proton" \
+	"$HOME/.local/bin/proton" \
+	"$XDG_CONFIG_HOME/MangoHud" \
+	"$XDG_CONFIG_HOME/unity3d" \
+	"$XDG_CONFIG_HOME/Epic" \
+	"$XDG_CONFIG_HOME/Loop_Hero" \
+	"$XDG_CONFIG_HOME/ModTheSpire" \
+	"$XDG_CONFIG_HOME/RogueLegacy" \
+	"$XDG_CONFIG_HOME/RogueLegacyStorageContainer" \
+	"$XDG_DATA_HOME/3909/PapersPlease" \
+	"$XDG_DATA_HOME/aspyr-media" \
+	"$XDG_DATA_HOME/bohemiainteractive" \
+	"$XDG_DATA_HOME/cdprojektred" \
+	"$XDG_DATA_HOME/Colossal Order" \
+	"$XDG_DATA_HOME/Dredmor" \
+	"$XDG_DATA_HOME/FasterThanLight" \
+	"$XDG_DATA_HOME/feral-interactive" \
+	"$XDG_DATA_HOME/frictionalgames" \
+	"$XDG_DATA_HOME/HotlineMiami" \
+	"$XDG_DATA_HOME/IntoTheBreach" \
+	"$XDG_DATA_HOME/Paradox Interactive" \
+	"$XDG_DATA_HOME/PillarsOfEternity" \
+	"$XDG_DATA_HOME/RogueLegacy" \
+	"$XDG_DATA_HOME/RogueLegacyStorageContainer" \
+	"$XDG_DATA_HOME/SuperHexagon" \
+	"$XDG_DATA_HOME/Terraria" \
+	"$XDG_DATA_HOME/vpltd" \
+	"$XDG_DATA_HOME/vulkan"
+
+# shellcheck disable=SC2154
+case "$__file__" in
+steam_sandbox)
+	main "$@"
+	;;
+steam)
+	main /usr/lib/steam/steam "$@"
+	;;
+esac

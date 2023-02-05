@@ -1,0 +1,8 @@
+[Unit]
+Description=Run commands
+
+[Service]
+ExecStart=/bin/sh -c 'bash $HOME/.config/rc.d/*'
+
+[Install]
+WantedBy=default.target

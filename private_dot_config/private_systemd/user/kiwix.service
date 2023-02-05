@@ -1,0 +1,9 @@
+[Unit]
+Description=Start Kiwix Server
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/kiwix-serve --library ${HOME}/var/zim/index.xml -i 127.0.0.1 -p 40080 -b -t 1 -M
+
+[Install]
+WantedBy=default.target

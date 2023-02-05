@@ -1,0 +1,76 @@
+#!/usr/bin/bash
+USAGE="\
+Usage: $0 [options]
+
+Options:
+	-a		all
+	-p		pip package
+	-g		go binary
+	-n		npm
+"
+
+_pkg_pip=(
+	vispy	
+	litecli					
+	gaphor
+	pyxel                  # retro game engine
+	manim                  # animation library
+	grip                   # markdown server
+	fake-bpy-module-latest # blender stubs
+	pygments-style-onedark
+	pyinstaller
+	tinydb
+	dash # analytical web apps
+	pysdl2
+	pyGObject-stubs
+	torch
+	torchvision
+	torchaudio
+)
+
+_pkg_go=(
+	github.com/cosmos72/gomacro
+	github.com/gopherdata/gophernotes
+)
+
+#flags
+declare -a _updates
+
+if (($# == 0)); then
+	echo -n "$USAGE"
+	exit 2
+fi
+
+while getopts ":aspngh" opt; do
+	case "$opt" in
+	a) _updates=(pip npm go) ;;
+	p) _updates+=(pip) ;;
+	n) _updates+=(npm) ;;
+	g) _updates+=(go) ;;
+	h | ?)
+		echo -n "$USAGE"
+		exit 2
+		;;
+	esac
+done
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# update functions
+
+update_pip() {
+	pip install "${_pkg_pip[@]}" -U
+}
+
+update_npm() {
+	npm -g up
+}
+
+update_go() {
+	for p in "${_pkg_go[@]}"; do
+		go install "$p@latest"
+	done
+}
+
+for u in "${_updates[@]}"; do
+	"update_${u}"
+done

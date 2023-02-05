@@ -1,0 +1,120 @@
+#!/usr/bin/bash
+# shellcheck disable=SC2155,SC1091
+source "$HOME/.local/bin/sandbox"
+
+USAGE="
+Usage: $0 [-dxl] [command]
+
+Flags:
+	-d           allow dbus
+	-i           child die with parent process
+	-x           allow X11
+	-l           list prefixes
+"
+
+PREFIX_DIR="$HOME/var/prefix"
+cd "$PREFIX_DIR" || exit 4
+
+declare -A flags
+while getopts 'idlxbh' opt; do
+	case "$opt" in
+	d)
+		flags[dbus]=1
+		;;
+	i)
+		flags[die]=1
+		;;
+	l)
+		for d in "$PREFIX_DIR"/*; do
+			basename "$d"
+		done
+		exit
+		;;
+	x)
+		flags[x11]=1
+		;;
+	h)
+		echo -n "$USAGE"
+		exit
+		;;
+	*)
+		echo -n "$USAGE"
+		exit 2
+		;;
+	esac
+done
+shift $((OPTIND - 1))
+
+_prefix=$1
+shift
+
+if [[ -z $_prefix ]]; then
+	echo "prefix name required"
+	exit 2
+fi
+if [[ $_prefix == tmp ]]; then
+	DEBUG 1 "temporary prefix"
+	mkdir -p "$(readlink -f "$_prefix")"
+fi
+if [[ ! -d $_prefix ]]; then
+	echo "prefix does not exist"
+	exit 6
+fi
+
+PREFIX="$PREFIX_DIR/$_prefix"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# create sandbox
+sandbox_init
+sandbox_unshare
+sandbox_clearenv
+sandbox_init_env
+sandbox_args+=(
+	--bind "$PREFIX" "$HOME"
+	--setenv SHELL "/bin/bash"
+)
+sandbox_init_xdg
+
+sandbox_keepenv \
+	LANG \
+	LC_ALL \
+	EDITOR \
+	DISPLAY \
+	WAYLAND_DISPLAY
+
+if ((flags[die])); then
+	DEBUG 1 "kill sandbox processes when bwrap dies"
+	sandbox_args+=(--die-with-parent)
+fi
+
+bind_base
+((flags[dbus])) && 
+	bind_dbus
+((flags[x11])) && 
+	bind_x11
+bind_sound
+bind_gpu
+bind_wayland
+
+change_hostname "pfx-$_prefix"
+
+copy \
+	"$HOME/.bashrc" "$PREFIX/.bashrc" \
+	"$XDG_CONFIG_HOME/chromium-flags.conf" "$PREFIX/.config/chromium-flags.conf"
+
+robind \
+	"$HOME/.config/dircolors"
+
+if [[ -n "$BWRAP_ARGS" ]]; then
+	DEBUG 1 "addtional bwrap args"
+	#shellcheck disable=SC2206
+	sandbox_args+=($BWRAP_ARGS)
+fi
+
+if (($# > 0)); then
+	_cmd=$1
+	shift
+	sandbox_exec "$_cmd" "$@"
+else
+	sandbox_exec bash
+fi

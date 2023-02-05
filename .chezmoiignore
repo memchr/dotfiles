@@ -1,0 +1,14 @@
+README.md
+.key.age
+
+{{ if not .config.decrypt_secrets }}
+.netrc
+{{ end }}
+
+{{ if glob "/usr/share/gdb-dashboard" | not }}
+.config/gdb/gdbinit
+{{ end }}
+
+{{ if not .config.sandbox_steam }}
+.local/bin/steam
+{{ end }}

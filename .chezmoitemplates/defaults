@@ -1,0 +1,22 @@
+{{- $defaults := dict }}
+
+{{- $editor := "" }}
+{{- range $e := list "nvim" "vim" "nano" "vi" }}
+{{-   if lookPath $e }}
+{{-     $editor = $e }}
+{{-     break }}
+{{-   end }}
+{{- end }}
+{{- $_ := set $defaults "editor" $editor }}
+
+{{- $browser := "" }}
+{{- range $e := list "chromium" "firefox" "google-chrome-stable" "epiphany" }}
+{{-   if lookPath $e }}
+{{-     $browser = $e }}
+{{-     break }}
+{{-   end }}
+{{- end }}
+{{- $_ := set $defaults "browser" $browser }}
+
+{{- $defaults | toJson }}
+{{- /* EOL */ -}}

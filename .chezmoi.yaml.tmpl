@@ -1,0 +1,35 @@
+# {{ $env := includeTemplate "env" . | fromJson }}
+# {{ $defaults := includeTemplate "defaults" . | fromJson }}
+---
+diff:
+  pager: delta
+
+merge:
+  command: nvim
+  args: -d
+encryption: 'age'
+
+age:
+  identity: '{{ $env.XDG_CONFIG_HOME }}/chezmoi/key'
+  recipient: age17t5k42mpzgzxt9qznrwat8s0qp0cx099madf5wrxhyxyyjn2k58qkgpxsn
+data:
+  env:
+    XDG_DATA_HOME: '{{ $env.XDG_DATA_HOME }}'
+    XDG_CONFIG_HOME: '{{ $env.XDG_CONFIG_HOME }}'
+    XDG_CACHE_HOME: '{{ $env.XDG_CACHE_HOME }}'
+    XDG_STATE_HOME: '{{ $env.XDG_STATE_HOME }}'
+    USER_LOCAL_BIN: '{{ $env.USER_LOCAL_BIN }}'
+  config:
+    decrypt_secrets: {{ promptBoolOnce . "config.decrypt_secrets" "Decrypt secret files" false }}
+    # {{- $sandbox_steam := false -}}
+    # {{- if and (lookPath "steam") (lookPath "bwrap") -}}
+    # {{-   $sandbox_steam = promptBoolOnce . "config.sandbox_steam" "Sandbox steam" false -}}
+    # {{- end }}
+    sandbox_steam: {{ $sandbox_steam }}
+  defaults:
+    editor: {{ promptStringOnce . "defaults.editor" "Default editor" $defaults.editor }}
+  external:
+    neovim: {{ promptBoolOnce . "external.neovim" "Use neovim dotfiles" true }}
+    sccache: {{ promptBoolOnce . "external.sccache" "Install sccache" false }}
+---
+# vi: ft=yaml

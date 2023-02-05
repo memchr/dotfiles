@@ -1,0 +1,546 @@
+#!/usr/bin/bash
+# shellcheck disable=SC2296
+USAGE="
+Usage: $0 [-kxwgs] [command]
+
+Flags:
+	-k           Keep child process after parent dies
+	-d           Enable dbus
+	-x           Enable X11
+	-w           Enable wayland
+	-g           Enable gpu
+	-n           Use nvidia grahics (if available)
+	-s           Enable sound
+	-D           Enable all above except dbus
+	-p           Bind current working directory
+	-r rootfs    use as base system
+	-l           Set locale
+
+Environment variables:
+	SANDBOX_DEBUG      debug level
+"
+DEBUGLEVEL=$SANDBOX_DEBUG
+
+_shell="$(ps -p $$ -o comm=)"
+if [[ $_shell == zsh ]]; then
+	__file__="$(basename -- "$ZSH_ARGZERO")"
+	setopt NULL_GLOB
+else
+	__file__="$(basename -- "$0")"
+	shopt -s nullglob
+	set -e
+fi
+
+main() {
+	sandbox_args=()
+	declare -A flags
+	while getopts 'dkxwsgnDpr:l:h-' opt; do
+		case "$opt" in
+		d)
+			flags[dbus]=1
+			;;
+		k)
+			flags[keep_child]=1
+			;;
+		x)
+			flags[x11]=1
+			;;
+		w)
+			flags[wayland]=1
+			;;
+		s)
+			flags[sound]=1
+			;;
+		g)
+			flags[graphics]=1
+			;;
+		n)
+			flags[nvidia]=1
+			;;
+		D)
+			flags[wayland]=1
+			flags[x11]=1
+			flags[sound]=1
+			flags[graphics]=1
+			;;
+		p)
+			flags[pwd]=1
+			;;
+		r)
+			newroot="${OPTARG}"
+			;;
+		l)
+			newlocale="${OPTARG}"
+			;;
+		h)
+			echo -n "$USAGE"
+			exit
+			;;
+		-)
+			break
+			OPTIND=$((OPTIND - 1))
+			;;
+		*)
+			echo -n "$USAGE"
+			exit 2
+			;;
+		esac
+	done
+	shift $((OPTIND - 1))
+
+	sandbox_init
+	sandbox_clearenv
+	sandbox_init_env
+	sandbox_init_xdg
+	sandbox_unshare
+
+	if ((flags[keep_child] != 1)); then
+		DEBUG 1 "kill sandbox processes when bwrap dies"
+		sandbox_args+=(--die-with-parent)
+	fi
+	if [[ -z $newroot ]]; then
+		bind_base
+	else
+		bind_newroot "$newroot"
+	fi
+	((flags[dbus])) && 
+		bind_dbus
+	((flags[x11])) &&
+		bind_x11
+	((flags[wayland])) &&
+		bind_wayland
+	((flags[sound])) &&
+		bind_sound
+	((flags[graphics])) &&
+		bind_gpu
+	((flags[pwd])) &&
+		bind "$PWD" && DEBUG 1 "bind current directory $PWD"
+	if [[ -n $newlocale ]]; then
+		sandbox_args+=(
+			--setenv LANG "${newlocale}"
+			--setenv LC_ALL "${newlocale}"
+		)
+	fi
+	bind_shared
+	robind \
+		"$HOME/.bashrc" \
+		"$XDG_CONFIG_HOME/inputrc" \
+		"$XDG_CONFIG_HOME/dircolors"
+
+	change_hostname "sandbox-$$"
+
+	sandbox_exec "$@"
+}
+
+DEBUG() {
+	[[ -z $DEBUGLEVEL ]] && return 0
+	debuglevel="$1"
+	shift
+	[[ $DEBUGLEVEL -lt $debuglevel ]] && return 0
+	_color="\033[3$((debuglevel + 1));1m"
+	echo -e "${_color}[debug $debuglevel]\033[0m $*" >&2
+}
+
+ERROR() {
+	echo -e "\e[31;1m$*\e[0m" >&2
+}
+
+DEBUG 1 "__file__ = \033[32;1m${__file__}\033[0m"
+
+_bind() {
+	_bind_arg=$1
+	shift
+	for _path in "$@"; do
+		DEBUG 2 "$_bind_arg \033[96m$_path"
+		if ((DEBUGLEVEL > 2)); then
+			if [[ ! -e $_path ]]; then
+				DEBUG 3 "\033[31m$_path does not exists\033[0m"
+			fi
+		fi
+		sandbox_args+=("$_bind_arg" "$_path" "$_path")
+	done
+}
+
+
+if [[ $_shell != zsh ]]; then
+	# expand environment by name
+	expand_env() {
+		echo "${!1}"
+	}
+	#######################################
+	# Expand array index to value
+	# Arguments:
+	#	1. index
+	#	2. array
+	#######################################
+	expand_index() {
+		local _index=$1
+		shift
+		echo "${!_index}"
+	}
+else
+	expand_env() {
+		echo "${(P)1}"
+	}
+	expand_index() {
+		local _index=$1
+		shift
+		echo "${(P)_index}"
+	}
+fi
+
+#######################################
+# Bind mount the host paths to the same path in the sandbox
+# Arguments:
+#	list of paths to bind,
+#######################################
+bind() {
+	_bind --bind-try "$@"
+}
+
+#######################################
+# same as bind but readonly
+# Arguments:
+#	list of paths to bind,
+#######################################
+robind() {
+	_bind --ro-bind-try "$@"
+}
+
+#######################################
+# Bind mount files in /etc
+# Arguments:
+#	list of paths to bind,
+#######################################
+etcbind() {
+	_paths=()
+	for _path in "$@"; do
+		_paths+=(/etc/"$_path")
+	done
+	_bind --ro-bind-try "${_paths[@]}"
+}
+
+#######################################
+# Bind mount device files
+# Arguments:
+#	list of paths to bind,
+#######################################
+devbind() {
+	_bind --dev-bind-try "$@"
+}
+
+#######################################
+# Copy file from host to sandbox
+# Arguments:
+#	list of paths to copy, in SRC DEST format
+#######################################
+copy() {
+	for ((i = 0; i < $# / 2; i++)); do
+		local src=$((i * 2 + 1))
+		local dst=$((i * 2 + 2))
+		src="$(expand_index "$src" "$@")"
+		dst="$(expand_index "$dst" "$@")"
+		DEBUG 2 "copy: ${src} -> ${dst}"
+		if [[ ! -e ${dst} ]]; then
+			mkdir -p "$(dirname "${src}")"
+			cp "${src}" "${dst}"
+		else
+			DEBUG 3 "copy: ${dst} exists"
+		fi
+	done
+}
+
+#######################################
+# Create symbolic links in sandbox
+# Arguments:
+#	list of paths to copy, in SRC DEST format
+#######################################
+symlink() {
+	for ((i = 0; i < $# / 2; i++)); do
+		local src=$((i * 2 + 1))
+		local dst=$((i * 2 + 2))
+		src="$(expand_index "$src" "$@")"
+		dst="$(expand_index "$dst" "$@")"
+		DEBUG 2 "symlink: ${src} -> ${dst}"
+		sandbox_args+=(--symlink "${src}" "${dst}")
+	done
+}
+
+# basic paths
+bind_base() {
+	DEBUG 1 "basic paths"
+
+	robind \
+		/usr \
+		/opt \
+		/sys
+
+	symlink \
+		/usr/lib /lib \
+		/usr/lib /lib64 \
+		/usr/bin /bin \
+		/usr/bin /sbin \
+		/run /var/run
+
+	_etc_binds=(
+		OpenCL X11 adjtime alsa apt arch-release bash.bash_logout bash.bashrc
+		bash_completion.d binfmt.d bluetooth ca-certificates cczerc conf.d dconf
+		default environment ethertypes fonts fuse.conf gai.conf grc.conf grc.fish
+		grc.zsh group gtk-2.0 gtk-3.0 host.conf hostname hosts inputrc issue
+		java-openjdk ld.so.cache ld.so.conf ld.so.conf.d libao.conf libinput libnl
+		libpaper.d libva.conf locale.conf localtime login.defs lsb-release
+		mime.types mono named.conf machine-id ndctl ndctl.conf.d odbc.ini
+		odbcinst.ini openldap openmpi openpmix os-release pam.d papersize paru.conf
+		passwd pipewire pkcs11 povray profile profile.d protocols pulse rc_keymaps
+		rc_maps.cfg request-key.conf request-key.d resolv.conf sane.d sasl2
+		securetty security sensors.d sensors3.conf services shells ssl subgid
+		subuid timidity tmpfiles.d tpm2-tss trusted-key.key ts.conf
+		vdpau_wrapper.cfg vulkan wgetrc whois.conf wpa_supplicant xattr.conf xdg
+		xinetd.d xml zsh
+	)
+	etcbind "${_etc_binds[@]}"
+
+	robind \
+		/var/empty \
+		/var/lib/alsa \
+		/var/lib/dbus \
+		"$XDG_RUNTIME_DIR/systemd/resolve"
+}
+
+# use a different rootfs
+bind_newroot() {
+	DEBUG 1 "bind rootfs $newroot"
+	newroot="$(readlink -f "$1")"
+	sandbox_args+=(
+		--ro-bind-try "$newroot/bin" /bin
+		--ro-bind-try "$newroot/sbin" /sbin
+		--ro-bind-try "$newroot/usr" /usr
+		--ro-bind-try "$newroot/etc" /etc
+		--ro-bind-try "$newroot/lib" /lib
+		--ro-bind-try "$newroot/lib32" /lib32
+		--ro-bind-try "$newroot/lib64" /lib64
+		--ro-bind-try "$newroot/libexec" /libexec
+		--ro-bind-try "$newroot/var" /var
+		--ro-bind-try "$newroot/sys" /sys
+		--ro-bind-try "$newroot/run" /run
+		--ro-bind-try "$newroot/mnt" /mnt
+		--ro-bind-try "$newroot/local" /local
+		--ro-bind-try "$newroot/share" /share
+		--ro-bind-try "$newroot/include" /include
+	)
+}
+
+bind_shared() {
+	DEBUG 1 "bind shared paths"
+	bind \
+		"$HOME/downloads" \
+		"$HOME/tmp"
+}
+
+bind_dbus() {
+	DEBUG 1 "bind dbus socket"
+	bind \
+		/run/dbus \
+		"$XDG_RUNTIME_DIR/bus" \
+		"$XDG_RUNTIME_DIR"/dbus*
+
+	sandbox_keepenv DBUS_SESSION_BUS_ADDRESS
+}
+
+bind_gnome() {
+	DEBUG 1 "bind gnome files"
+	bind \
+		"$XDG_RUNTIME_DIR/dconf" \
+		"$XDG_RUNTIME_DIR/at-spi" \
+		"$XDG_RUNTIME_DIR"/gnome*
+}
+
+bind_systemd() {
+	DEBUG 1 "bind systemd sockets"
+	bind \
+		/run/systemd \
+		"$XDG_RUNTIME_DIR/systemd"
+}
+
+bind_shader_cache() {
+	DEBUG 1 "bind shader cache"
+	bind \
+		"$XDG_CACHE_HOME/mesa_shader_cache" \
+		"$XDG_CACHE_HOME/radv_builtin_shaders64" \
+		"$XDG_CACHE_HOME/nv" \
+		"$XDG_CACHE_HOME/nvidia"
+}
+
+bind_x11() {
+	DEBUG 1 "bind X11 sockets"
+	bind \
+		/tmp/.X11-unix \
+		/tmp/.ICE-unix \
+		"$HOME/.Xauthority" \
+		/run/user/1000/ICE* \
+		"$XDG_RUNTIME_DIR"/.mutter-X*
+
+	sandbox_keepenv \
+		DISPLAY \
+		XAUTHORITY
+
+	if [[ -n $_session_manager ]]; then
+		sandbox_args+=(--setenv SESSION_MANAGER "$_session_manager")
+	else
+		sandbox_keepenv SESSION_MANAGER
+	fi
+}
+
+bind_wayland() {
+	DEBUG 1 "bind wayland sockets"
+	bind \
+		"$XDG_RUNTIME_DIR"/wayland*
+
+	sandbox_keepenv WAYLAND_DISPLAY
+}
+
+bind_gpu() {
+	DEBUG 1 "bind gpu devices"
+	devbind \
+		/dev/dri \
+		/dev/nvidia*
+	sandbox_keepenv \
+		__GL_THREADED_OPTIMIZATION
+}
+
+bind_sound() {
+	DEBUG 1 "bind sound server sockets"
+	bind \
+		"$XDG_RUNTIME_DIR"/pulse* \
+		"$XDG_RUNTIME_DIR"/pipewire*
+}
+
+# Use nvidia gpu
+gpu_nvidia() {
+	if [[ -e /dev/nvidiactl ]]; then
+		DEBUG 1 "use nvidia gpu by default"
+		sandbox_args+=(
+			--setenv __NV_PRIME_RENDER_OFFLOAD 1
+			--setenv __GLX_VENDOR_LIBRARY_NAME nvidia
+			--setenv __VK_LAYER_NV_optimus NVIDIA_only
+			--setenv VK_DRIVER_FILES /usr/share/vulkan/icd.d/nvidia_icd.json
+		)
+	fi
+}
+
+#######################################
+# Change hostname
+# Arguments:
+#	new hostname
+#######################################
+change_hostname() {
+	DEBUG 1 "change host name to $1"
+	_new_hostname=$1
+	_hostname=$(hostname)
+	_session_manager="${SESSION_MANAGER//$_hostname/$_new_hostname}"
+	sandbox_args+=(
+		--setenv SESSION_MANAGER "$_session_manager"
+		--unshare-uts
+		--hostname "$_new_hostname"
+	)
+}
+
+sandbox_clearenv() {
+	DEBUG 1 "clear environment variables"
+	sandbox_args+=(--clearenv)
+}
+
+# Keep those environment variables in sandbox
+sandbox_keepenv() {
+	local ev
+	for e in "$@"; do
+		ev="$(expand_env "$e")"
+		if [[ -n $ev ]]; then
+			DEBUG 3 "env \033[36;1m${e}\033[0m=\033[33m${ev}\033[0m"
+			sandbox_args+=(--setenv "$e" "${ev}")
+		fi
+	done
+}
+
+sandbox_init() {
+	DEBUG 1 "initialize sandbox"
+	sandbox_args=(
+		--tmpfs /tmp
+		--proc /proc
+		--dev /dev
+		--dir /etc
+		--dir /var
+		--dir "$HOME"
+
+	)
+}
+sandbox_init_env() {
+	DEBUG 1 "setting environment variables"
+	sandbox_args+=(
+		--unsetenv TMUX
+		--setenv SANDBOX "1"
+		--setenv PATH "$HOME/.local/bin:/usr/bin:/usr/sbin:/bin:/sbin"
+	)
+	sandbox_keepenv \
+		HOME \
+		TERM \
+		SHELL \
+		LANG \
+		LC_ALL \
+		LC_TIME \
+		LOGNAME \
+		MAIL \
+		COLORTERM \
+		EDITOR \
+		BROWSER \
+		INPUTRC \
+		PAGER \
+		LS_COLORS \
+		USER
+}
+
+sandbox_init_xdg() {
+	DEBUG 1 "initialize XDG base directories"
+	sandbox_args+=(
+		--dir "$XDG_RUNTIME_DIR"
+		--dir "$XDG_CONFIG_HOME"
+		--dir "$XDG_CACHE_HOME"
+		--dir "$XDG_DATA_HOME"
+		--dir "$XDG_STATE_HOME"
+		--dir "$HOME/.local/bin"
+	)
+	sandbox_keepenv \
+		XDG_RUNTIME_DIR \
+		XDG_CONFIG_DIRS \
+		XDG_DATA_DIRS \
+		XDG_CONFIG_HOME \
+		XDG_CACHE_HOME \
+		XDG_DATA_HOME \
+		XDG_STATE_HOME
+}
+
+# Unshare most linux namespaces except net
+sandbox_unshare() {
+	sandbox_args+=(
+		--unshare-all
+		--share-net
+	)
+}
+
+# run sandbox and replace current shell
+sandbox_exec() {
+	DEBUG 1 "exec bwrap"
+	unset DEBUG DEBUGLEVEL
+	exec bwrap "${sandbox_args[@]}" "$@"
+}
+
+# run sandbox
+sandbox_run() {
+	DEBUG 1 "run bwrap"
+	unset DEBUG DEBUGLEVEL
+	bwrap "${sandbox_args[@]}" "$@"
+}
+
+if [[ $__file__ == sandbox ]]; then
+	main "$@"
+fi

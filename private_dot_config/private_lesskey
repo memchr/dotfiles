@@ -1,0 +1,2 @@
+#env
+LESS = -x4 -i -R --mouse --wheel-lines=3 --use-color

@@ -1,0 +1,222 @@
+#!/usr/bin/bash
+# shellcheck disable=SC2034
+
+USAGE="\
+Clean up disk
+
+Usage: $0 <options>
+
+Flags:
+	-a    all
+"
+
+[[ -z "$HOME" ]] && exit 2
+XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
+
+_opts="haPpngGcblstvdmM"
+declare -A _optmap=(
+	[P]=pacman [p]=pip [n]=npm [g]=go_mod [G]=go_build [c]=cargo [b]=build
+	[l]=lsp [s]=shader [t]=trash [v]=code [d]=debug [m]=maven [M]=misc
+)
+
+declare -A _desc # descriptions
+declare -a _cleanup
+declare -a _all=(
+	pacman pip npm go_mod go_build cargo build lsp
+	shader trash code debug maven misc
+)
+
+_desc[pacman]="package manager cache"
+_cache_pacman=(
+	"/var/cache/pacman/pkg"
+)
+_desc[aur]="AUR cache"
+_cache_aur=(
+	"$XDG_CACHE_HOME/yay"
+	"$XDG_CACHE_HOME/paru"
+)
+_desc[pip]="pip cache"
+_cache_pip=(
+	"$XDG_CACHE_HOME/pip"
+)
+_desc[npm]="npm cache"
+_cache_npm=(
+	"$XDG_CACHE_HOME/npm"
+)
+_desc[go_mod]="go mod cache"
+_cache_go_mod=(
+	"$HOME/go/pkg"
+)
+_desc[go_build]="go build cache"
+_cache_go_build=(
+	"$XDG_CACHE_HOME/go-build"
+)
+_desc[cargo]="cargo registry cache"
+_cache_cargo=(
+	"$HOME/.cargo/registry"
+)
+_desc[build]="build cache"
+_cache_build=(
+	"$XDG_CACHE_HOME/sccache"
+	"$XDG_CACHE_HOME/ccache"
+)
+_desc[lsp]="language server cache"
+_cache_lsp=(
+	"$XDG_CACHE_HOME/jedi"
+	"$XDG_CACHE_HOME/clangd"
+)
+_desc[shader]="shader cache"
+_cache_shader=(
+	"$XDG_CACHE_HOME/nv"
+	"$XDG_CACHE_HOME/nvidia"
+	"$XDG_CACHE_HOME/mesa_shader_cache"
+)
+_desc[trash]="trash"
+_cache_trash=(
+	"$XDG_DATA_HOME/Trash/files"
+)
+_desc[code]="vscode cache"
+_cache_code=(
+	"$XDG_CONFIG_HOME/Code/CachedExtensionVSIXs"
+	"$XDG_CONFIG_HOME/Code/Crashpad"
+	"$XDG_CONFIG_HOME/Code/Cache"
+	"$XDG_CONFIG_HOME/Code/CachedData"
+)
+_desc[debug]="debugging cache"
+_cache_debug=(
+	"$HOME/.debug"
+)
+_desc[maven]="maven repository"
+_cache_maven=(
+	"$HOME/.m2/repository"
+)
+_desc[misc]="miscellaneous"
+_cache_misc=(
+	# CKAN downloads
+	"$XDG_DATA_HOME/CKAN/downloads"
+	# winetricks
+	"$XDG_CACHE_HOME/winetricks"
+	# pyinstaller
+	"$XDG_CACHE_HOME/pyinstaller"
+)
+for ((i = 2; i < ${#_opts}; i++)); do
+	opt="${_opts:$i:1}"
+	__="_optmap[$opt]"
+	__="${!__}"
+	__="_desc[$__]"
+	desc="${!__}"
+	USAGE="$USAGE\t-${opt}    ${desc}\n"
+done
+
+main() {
+	# display status by default
+	if (($# == 0)); then
+		echo "Disk usage:"
+		disk_usage
+		exit
+	fi
+
+	while getopts "$_opts" opt; do
+		__="_optmap[${opt}]"
+		_cache="${!__}"
+		case "$opt" in
+		h)
+			echo -en "$USAGE"
+			exit
+			;;
+		a)
+			_cleanup=("${_all[@]}")
+			break
+			;;
+		*)
+			#shellcheck disable=SC2076
+			if [[ $_opts =~ "$opt" ]]; then
+				_cleanup+=("$_cache")
+			else
+				exit 2
+			fi
+			;;
+		esac
+	done
+
+	local files=()
+	for c in "${_cleanup[@]}"; do
+		if has "cleanup_${c}"; then
+			"cleanup_${c}"
+		else
+			local __="_cache_${c}[@]"
+			files+=("${!__}")
+		fi
+		msg "$c"
+	done
+	echo rm -rf "${files[@]}"
+}
+
+disk_usage() {
+	for c in aur "${_all[@]}"; do
+		local __="_cache_${c}[@]"
+		files=("${!__}")
+		echo "$(du -sch "${files[@]}" 2>/dev/null | tail -1) ${_desc[$c]}"
+	done |
+		sort -h |
+		awk 'BEGIN {
+					green = 32;
+					yellow = 33;
+					red = 31;
+			}
+			{
+				size = $1;
+				$1=$2=""
+				desc = $0
+				unit = substr(size, length(size) ,1);
+				if (unit == 0 || unit == "K") {
+					color = green;
+				} else if (unit == "M") {
+					color = yellow;
+				} else if (unit == "G") {
+					color = red;
+				}
+				printf ("\033[%sm%-5s\033[0m %s\n",color, size, desc);
+			}'
+}
+
+msg() {
+	echo -e "\033[32;1m[cleared]\033[0m ${_desc[$1]}"
+}
+
+has() {
+	type -t "$1" &>/dev/null
+}
+
+cleanup_pacman() {
+	if has yay; then
+		yes | LC_ALL=C yay -Scc
+	elif has paru; then
+		yes | LC_ALL=C paru -Scc
+	else
+		yes | LC_ALL=C sudo pacman -Scc
+	fi
+}
+cleanup_pip() {
+	pip cache purge
+}
+cleanup_npm() {
+	npm cache clean --force
+	_npm_gyp=("$XDG_CACHE_HOME"/node-gyp/*)
+	if ((${#_npm_gyp[@]} > 1)); then
+		rm -rf "$XDG_CACHE_HOME/node-gyp"
+	fi
+}
+cleanup_go_mod() {
+	go clean -modcache
+}
+cleanup_go_build() {
+	go clean -cache
+}
+cleanup_cargo() {
+	cargo cache -a
+}
+
+main "$@"

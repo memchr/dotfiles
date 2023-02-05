@@ -1,0 +1,8 @@
+{{- $env := dict }}
+{{- $_ := env "XDG_DATA_HOME" | default (print .chezmoi.homeDir "/.local/share") | set $env "XDG_DATA_HOME" }}
+{{- $_ := env "XDG_CONFIG_HOME" | default (print .chezmoi.homeDir "/.config") | set $env "XDG_CONFIG_HOME" }}
+{{- $_ := env "XDG_CACHE_HOME" | default (print .chezmoi.homeDir "/.cache") | set $env "XDG_CACHE_HOME" }}
+{{- $_ := env "XDG_STATE_HOME" | default (print .chezmoi.homeDir "/.local/state") | set $env "XDG_STATE_HOME" }}
+{{- $_ := print .chezmoi.homeDir "/.local/bin" | set $env "USER_LOCAL_BIN" }}
+{{- $env | toJson }}
+{{- /* EOL */ -}}

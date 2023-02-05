@@ -1,0 +1,46 @@
+;	git config user.name <Your Name>
+;	git config user.email <name@host.domain>
+;   git config user.signingkey <path of ssh public key>
+
+[core]
+	pager = delta
+
+[init]
+	defaultBranch = main
+
+[commit]
+	gpgsign = true
+
+[pull]
+	rebase = false
+
+[merge]
+	conflictstyle = diff3
+	tool = vimdiff
+
+[diff]
+	colorMoved = default
+
+[mergetool]
+	prompt = false
+	keepBackup = false
+
+[gpg]
+	format = ssh
+
+[gpg "ssh"]
+	allowedSignersFile = {{ .chezmoi.homeDir }}/.ssh/allowed_signers
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	line-numbers = true
+	syntax-theme = onedark
+	plus-style = syntax "#324a32"
+	minus-style = syntax "#4a323a"
+	line-numbers-minus-style = "#e06c75"
+	line-numbers-plus-style = "#98c379"
+
+; vi: ft=gitconfig

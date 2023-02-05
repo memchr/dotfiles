@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# vi: tw=80 ft=sh
+#-------------------------
+# global variables
+#-------------------------
+
+SOURCE="{{ .chezmoi.sourceDir }}"
+DECRYPT_KEY="{{ .config.decrypt_secrets }}"
+KEY_ENCRYPTED="$SOURCE/.key.age"
+KEY="${XDG_CONFIG_DIR:-$HOME/.config}/chezmoi/key"
+
+decrypt_private_key() {
+	[[ -f "$KEY" ]] && return 0
+	echo "Decrypting private key"
+	while ! age -d -o "$KEY" "$KEY_ENCRYPTED"; do
+		while true; do
+			read -r -n 1 -p "try again?" yn
+			case $yn in
+			[Yy]*) 
+				echo 
+				break ;;
+			[Nn]*) exit 0 ;;
+			esac
+		done
+	done
+	chmod 600 "$KEY"
+}
+
+if [[ $DECRYPT_KEY == true ]]; then
+	decrypt_private_key
+fi

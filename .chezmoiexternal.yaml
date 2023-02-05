@@ -1,0 +1,10 @@
+# {{ if .external.neovim }}
+# ".config/nvim":
+#   type: git-repo
+#   url: "https://github.com/memchr/init.nvim"
+#   refreshPeriod: 168h
+# {{ end }}
+
+".local/share/tmux/plugins/tpm":
+  type: "git-repo"
+  url: "https://github.com/tmux-plugins/tpm"

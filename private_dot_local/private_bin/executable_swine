@@ -1,0 +1,121 @@
+#!/usr/bin/bash
+# shellcheck disable=SC2155,SC1091
+source "$HOME/.local/bin/sandbox"
+
+# shellcheck disable=SC2154
+case "$__file__" in
+	proton)
+		export STEAM_COMPAT_CLIENT_INSTALL_PATH="$XDG_DATA_HOME/Steam"
+		export STEAM_COMPAT_DATA_PATH="$XDG_DATA_HOME/proton"
+		mkdir -p "$STEAM_COMPAT_DATA_PATH"
+
+		_proton_dir="$STEAM_COMPAT_CLIENT_INSTALL_PATH/steamapps/common/Proton 7.0"
+		_proton_cmd="$_proton_dir/proton"
+		_prefix="$STEAM_COMPAT_DATA_PATH"
+		;;
+	swine)
+		_prefix="$HOME/.wine"
+		;;
+esac
+
+USAGE="\
+Usage: $0 PROGRAM [ARGUMENTS...]
+
+Flags:
+	-n          Use nvidia grahics (if available)
+	-v PATHS    Bind colon separated PATHS to sandbox
+	-p PREFIX   Use a wine prefix, the default is $_prefix
+"
+
+declare -A flags
+while getopts "nv:p:h" opt; do
+	case "$opt" in
+	n)
+		flags[nvidia]=1
+		;;
+	v)
+		IFS=':' read -r -a _binds <<<"${OPTARG}"
+		;;
+	p)
+		_prefix=$(readlink -f "${OPTARG}")
+		;;
+	h)
+		echo -n "$USAGE"
+		exit
+		;;
+	*)
+		echo -n "$USAGE"
+		exit 2
+		;;
+	esac
+done
+shift $((OPTIND - 1))
+
+DEBUG 1 "prefix is \033[36;1m${_prefix}\033[0m"
+
+if [[ $__file__ == proton ]] && (($# == 0)); then
+	ERROR "no program to run"
+	echo -n "$USAGE"
+	exit 2
+fi
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# create sandbox
+sandbox_init
+sandbox_clearenv
+sandbox_init_env
+sandbox_init_xdg
+sandbox_unshare
+sandbox_keepenv \
+	WINEFSYNC \
+	DXVK_ENABLE_NVAPI \
+	STEAM_COMPAT_CLIENT_INSTALL_PATH \
+	STEAM_COMPAT_DATA_PATH \
+	MANGOHUD \
+	DXVK_HUD \
+	DXVK_STATE \
+	DXVK_STATE_CACHE_PATH \
+	VK_INSTANCE_LAYERS \
+	DXVK_LOG_LEVEL \
+	DXVK_LOG_PATH \
+	DXVK_CONFIG_FILE \
+	DXVK_DEBUG
+
+bind_base
+bind_shared
+bind_gpu
+bind_x11
+bind_wayland
+bind_sound
+bind_shader_cache
+bind \
+	"$HOME/.config/MangoHud"
+
+[[ -e $1 ]] &&
+	bind "$(dirname "$(readlink -f "$1")")"
+
+for d in "${_binds[@]}"; do
+	bind "$(readlink -f "$d")"
+done
+
+((flags[nvidia])) &&
+	gpu_nvidia
+
+DEBUG 1 "windows program: \033[32m$1\033[0m"
+
+case "$__file__" in
+	proton)
+		bind \
+			"$_prefix" \
+			"$_proton_dir"
+		change_hostname "proton-sandbox-$$"
+		sandbox_exec "$_proton_cmd" run "$@"
+		;;
+	swine)
+		bind \
+			"$HOME/var/wine" \
+			"$HOME/.wine"
+		change_hostname "wine-sandbox-$$"
+		sandbox_exec wine "$@"
+		;;
+esac

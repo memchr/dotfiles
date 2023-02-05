@@ -1,0 +1,20 @@
+# vi: ft=conf 
+
+--enable-features=CanvasOopRasterization,RawDraw,Vp9kSVCHWDecoding,WebUIDarkMode,DownloadBubble,OverlayScrollbar,ReaderMode,ScrollableTabStrip:minTabWidth/54,PasswordImport,SystemNotifications,VaapiVideoDecoder
+
+--disable-features=PersistentHistograms,UseChromeOSDirectVideoDecoder
+
+# Force gpu acceleration
+--use-vulkan
+--ingore-gpu-blocklist
+--enable-hardware-overlays
+--enable-zero-copy
+# wayland
+--ozone-platform-hint=wayland
+# dark mode
+--force-dark-mode
+# do not check for update
+--check-for-update-interval=604800
+# {{ if lookPath "gnome-keyring-daemon" }}
+--password-store=gnome
+# {{ end }}

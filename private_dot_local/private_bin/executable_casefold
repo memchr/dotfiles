@@ -1,0 +1,27 @@
+#!/usr/bin/python
+import sys
+import os
+import shutil
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.stderr.write("missing directory operand\n")
+        sys.exit(1)
+    root = os.path.join(os.getcwd(), sys.argv[1])
+    for d, dirs, files in os.walk(root, topdown=False):
+        # rename directory
+        shutil.move(d, f"{d}.old")
+        # new directory with casefold set
+        os.mkdir(d)
+        os.system(f'chattr +F "{d}"')
+        # move files back
+        for f in files + dirs:
+            shutil.move(os.path.join(f"{d}.old", f), d)
+        # remove old directory
+        os.rmdir(f"{d}.old")
+        print(d)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

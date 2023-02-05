@@ -1,0 +1,4 @@
+#!/bin/bash
+
+#link $HOME/src/.clang-format to ~/tmp
+ln -sf "$HOME/.config/clang-format" ~/tmp/.clang-format

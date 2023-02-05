@@ -1,0 +1,8 @@
+--enable-features=CanvasOopRasterization,OverlayScrollbar
+--ignore-gpu-blacklist
+--enable-gpu-rasterization
+--enable-native-gpu-memory-buffers
+--ozone-platform=wayland
+{{- if lookPath "gnome-keyring-daemon" }}
+--password-store=gnome
+{{- end }}

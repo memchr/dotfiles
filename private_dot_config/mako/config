@@ -1,0 +1,15 @@
+on-notify=exec play /usr/share/sounds/freedesktop/stereo/message-new-instant.oga
+layer=overlay
+background-color=#212121
+width=320
+height=460
+
+[urgency=low]
+border-color=#cccccc
+
+[urgency=normal]
+border-color=#d08770
+
+[urgency=high]
+border-color=#bf616a
+default-timeout=0

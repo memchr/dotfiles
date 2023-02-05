@@ -1,0 +1,5 @@
+# vi: ft=pamenv
+{{ if glob "/sys/bus/pci/drivers/amdgpu" -}}
+VDPAU_DRIVER=radeonsi
+VK_DRIVER_FILES=/usr/share/vulkan/icd.d/radeon_icd.i686.json:/usr/share/vulkan/icd.d/radeon_icd.x86_64.json
+{{ end }}

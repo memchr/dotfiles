@@ -1,0 +1,2 @@
+#!/usr/bin/bash
+mkdir -p "$HOME/tmp/prefix"

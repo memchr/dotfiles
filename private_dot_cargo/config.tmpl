@@ -1,0 +1,23 @@
+# vi: ft=toml
+[build]
+jobs = 6
+# {{ if .external.sccache }}
+rustc-wrapper = "{{ .chezmoi.homeDir }}/.local/lib/sccache"
+# {{ else if lookPath "sccache" }}
+rustc-wrapper = "sccache"
+# {{ end }}
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+	"-C", "target-cpu=native",
+# {{ if lookPath "mold" }}
+	"-C", "link-arg=-fuse-ld=mold",
+# {{ end }}
+]
+
+[profile.release]
+lto = "thin"
+strip = true
+
+[profile.dev]
+lto = false
