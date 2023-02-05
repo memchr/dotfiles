@@ -485,6 +485,7 @@ sandbox_init_env() {
 		HOME \
 		TERM \
 		SHELL \
+		ZDOTDIR \
 		LANG \
 		LC_ALL \
 		LC_TIME \
