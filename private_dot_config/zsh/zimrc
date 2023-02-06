@@ -1,0 +1,30 @@
+# vi: ft=zsh
+
+# Prompt
+zmodule romkatv/powerlevel10k --use degit
+# Provides handy git aliases and functions.
+zmodule git
+# Applies correct bindkeys for input events.
+zmodule input
+# Set terminal title
+zmodule termtitle
+# Utility aliases and functions. Adds colour to ls, grep and less.
+zmodule utility
+# Provides functions for easy archive manipulation.
+zmodule archive
+# zsh vi keybinding
+zmodule jeffreytse/zsh-vi-mode
+# 🐠 ZSH port of Fish history search (up arrow)
+zmodule zsh-users/zsh-history-substring-search
+
+# NOTE: completion must be sourced after all modules that add completion definitions.
+# Configurations
+zmodule $ZDOTDIR/lib
+# NOTE: fzf-tab need to be loaded after compinit, but before plugins which will wrap widgets
+# Replace zsh's default completion selection menu with fzf
+zmodule Aloxaf/fzf-tab
+# Feature-rich Syntax Highlighting for Zsh. 
+zmodule zdharma-continuum/fast-syntax-highlighting
+# Fish-like autosuggestions for zsh
+# always source this module last
+zmodule zsh-users/zsh-autosuggestions

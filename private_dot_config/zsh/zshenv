@@ -1,0 +1,56 @@
+setopt extendedglob
+
+if  [[ ! "$-" =~ "^i" ]]; then
+	set +u
+fi
+# xdg fallback
+if [[ -z "$XDG_CONFIG_HOME" ]]; then
+	export XDG_CONFIG_HOME="$HOME/.config"
+	export XDG_CACHE_HOME="$HOME/.cache"
+	export XDG_DATA_HOME="$HOME/.local/share"
+	export XDG_STATE_HOME="$HOME/.local/state"
+	export XDG_RUNTIME_DIR="/run/user/$UID"
+fi
+[[ -d $XDG_STATE_HOME ]] || mkdir -p "$XDG_STATE_HOME"
+
+# SHELL fallback
+export SHELL=${SHELL:-$(which zsh)}
+
+
+# environment.d fallback
+if ((ENVIRONMENTD_LOADED != 1)); then
+	if [[ -d "$XDG_CONFIG_HOME/environment.d/" ]]; then
+		while IFS="" read -r envar; do
+			[[ -n "$envar" ]] && [[ "$envar" =~ ^[^#] ]] && eval "export $envar"
+		done < $XDG_CONFIG_HOME/environment.d/^10-path.conf
+	fi
+fi
+
+# path fallback
+if (( ! ${path[(I)$HOME/.local/bin]} )); then
+	path=($HOME/.local/bin $HOME/.cargo/bin $path)
+fi
+export PATH
+
+export ZSH_CACHE_DIR="$XDG_CACHE_HOME/zsh"
+[[ -d $ZSH_CACHE_DIR ]] || mkdir -p "$ZSH_CACHE_DIR"
+
+# set COLORTERM in tmux
+if [[ -n "$TMUX" ]]; then
+	export COLORTERM=truecolor
+fi
+
+# lscolors
+if [[ -f "$XDG_CONFIG_HOME/dircolors" ]]; then
+	eval "$(dircolors "$XDG_CONFIG_HOME"/dircolors)"
+fi
+
+# Editor
+export EDITOR='nvim'
+# set custom folder
+export REPO=~/src/repo
+export LAB=~/src/lab
+export PRO=~/src/projects
+export TEMPLATES=~/src/templates
+# disable telemetry from the evil company
+export DOTNET_CLI_TELEMETRY_OPTOUT=true

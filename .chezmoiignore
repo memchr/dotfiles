@@ -3,6 +3,7 @@ README.md
 
 {{ if not .config.decrypt_secrets }}
 .netrc
+.config/zsh/lib/secrets.zsh
 {{ end }}
 
 {{ if glob "/usr/share/gdb-dashboard" | not }}
