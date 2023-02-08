@@ -22,9 +22,9 @@ USAGE="\
 Usage: $0 PROGRAM [ARGUMENTS...]
 
 Flags:
-	-n          Use nvidia grahics (if available)
-	-v PATHS    Bind colon separated PATHS to sandbox
-	-p PREFIX   Use a wine prefix, the default is $_prefix
+    -n          Use nvidia grahics (if available)
+    -v PATHS    Bind colon separated PATHS to sandbox
+    -p PREFIX   Use a wine prefix, the default is $_prefix
 "
 
 declare -A flags
