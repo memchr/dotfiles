@@ -1,0 +1,63 @@
+#!/usr/bin/bash
+__voice=en-GB-Libby
+__rate=+8%
+USAGE="\
+Text-to-Speech using edge-tts
+
+Usage: $0 [-v voice] [-r [+|-]<number>%] [-f file] [-m] [-t text]
+
+Arguments:
+    -v      voice
+    -r      rate in precept
+    -f      read content in file
+    -t      read content from text
+    -m      use mpv
+
+If no argument is given, read from stdin
+"
+while getopts "v:r:f:t:mh" opt; do
+	case $opt in 
+		v)
+			__voice="${OPTARG}"
+			;;
+		r)
+			__rate="${OPTARG}"
+			;;
+		f)
+			__file="${OPTARG}"
+			;;
+		t)
+			__text="${OPTARG}"
+			;;
+		m)
+			__mpv=1
+			;;
+		h)
+			echo "$USAGE"
+			exit
+			;;
+		*)
+			exit 2
+			;;
+	esac
+done
+shift $((OPTIND-1))
+
+_play() {
+	if [[ -n $__file ]]; then
+		edge-tts -t "$(sed -E 's/\[[0-9]+\]//g' "${__file}")" --rate "${__rate}" --voice "${__voice}Neural" 2>/dev/null | mpv -
+	elif [[ -n $__text ]]; then
+		edge-tts -t "$(echo "${__text}"|sed -E 's/\[[0-9]+\]//g')" --rate "${__rate}" --voice "${__voice}Neural" 2>/dev/null | mpv -
+	elif [[ ! -t 0 ]]; then
+		if ((__mpv)); then
+			edge-tts -t "$(sed -E 's/\[[0-9]+\]//g')" --rate "${__rate}" --voice "${__voice}Neural" 2>/dev/null | mpv -
+		else
+			play -t mp3 <(edge-tts -t "$(sed -E 's/\[[0-9]+\]//g')" --rate "${__rate}" --voice "${__voice}Neural" 2>/dev/null) >/dev/null 2>&1
+		fi
+	else
+		echo "no input was given"
+		exit 2
+	fi
+}
+
+_play "$@"
