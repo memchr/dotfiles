@@ -5,11 +5,11 @@ source "$HOME/.local/bin/sandbox"
 USAGE="
 Usage: $0 [-dxl] [command]
 
-Flags:
-	-d           allow dbus
-	-i           child die with parent process
-	-x           allow X11
-	-l           list prefixes
+Arguments:
+    -d           allow dbus
+    -i           child die with parent process
+    -x           allow X11
+    -l           list prefixes
 "
 
 PREFIX_DIR="$HOME/var/prefix"
@@ -88,6 +88,7 @@ if ((flags[die])); then
 fi
 
 bind_base
+bind_shared
 ((flags[dbus])) && 
 	bind_dbus
 ((flags[x11])) && 

@@ -1,20 +1,22 @@
 #!/usr/bin/bash
 # shellcheck disable=SC2296
-USAGE="
-Usage: $0 [-kxwgs] [command]
+USAGE="\
+Run program in bwrap sandbox
 
-Flags:
-	-k           Keep child process after parent dies
-	-d           Enable dbus
-	-x           Enable X11
-	-w           Enable wayland
-	-g           Enable gpu
-	-n           Use nvidia grahics (if available)
-	-s           Enable sound
-	-D           Enable all above except dbus
-	-p           Bind current working directory
-	-r rootfs    use as base system
-	-l           Set locale
+Usage: $0 [-kxwgs] <command>
+
+Arguments:
+    -k           Keep child process after parent dies
+    -d           Enable dbus
+    -x           Enable X11
+    -w           Enable wayland
+    -g           Enable gpu
+    -n           Use nvidia grahics (if available)
+    -s           Enable sound
+    -D           Enable all above except dbus
+    -p           Bind current working directory
+    -r rootfs    use as base system
+    -l           Set locale
 
 Environment variables:
 	SANDBOX_DEBUG      debug level
@@ -24,7 +26,7 @@ DEBUGLEVEL=$SANDBOX_DEBUG
 _shell="$(ps -p $$ -o comm=)"
 if [[ $_shell == zsh ]]; then
 	__file__="$(basename -- "$ZSH_ARGZERO")"
-	setopt NULL_GLOB
+	setopt null_glob
 else
 	__file__="$(basename -- "$0")"
 	shopt -s nullglob
@@ -103,7 +105,7 @@ main() {
 	else
 		bind_newroot "$newroot"
 	fi
-	((flags[dbus])) && 
+	((flags[dbus])) &&
 		bind_dbus
 	((flags[x11])) &&
 		bind_x11
@@ -138,7 +140,7 @@ DEBUG() {
 	shift
 	[[ $DEBUGLEVEL -lt $debuglevel ]] && return 0
 	_color="\033[3$((debuglevel + 1));1m"
-	echo -e "${_color}[debug $debuglevel]\033[0m $*" >&2
+	echo -e "${_color}[$__file__ debug $debuglevel]\033[0m $*" >&2
 }
 
 ERROR() {
@@ -161,7 +163,6 @@ _bind() {
 	done
 }
 
-
 if [[ $_shell != zsh ]]; then
 	# expand environment by name
 	expand_env() {
@@ -180,12 +181,12 @@ if [[ $_shell != zsh ]]; then
 	}
 else
 	expand_env() {
-		echo "${(P)1}"
+		eval "echo \$$1"
 	}
 	expand_index() {
 		local _index=$1
 		shift
-		echo "${(P)_index}"
+		eval "echo \$$_index"
 	}
 fi
 
@@ -288,7 +289,7 @@ bind_base() {
 		default environment ethertypes fonts fuse.conf gai.conf grc.conf grc.fish
 		grc.zsh group gtk-2.0 gtk-3.0 host.conf hostname hosts inputrc issue
 		java-openjdk ld.so.cache ld.so.conf ld.so.conf.d libao.conf libinput libnl
-		libpaper.d libva.conf locale.conf localtime login.defs lsb-release
+		libpaper.d libva.conf locale.conf localtime login.defs lsb-release man_db.conf
 		mime.types mono named.conf machine-id ndctl ndctl.conf.d odbc.ini
 		odbcinst.ini openldap openmpi openpmix os-release pam.d papersize paru.conf
 		passwd pipewire pkcs11 povray profile profile.d protocols pulse rc_keymaps
@@ -296,12 +297,13 @@ bind_base() {
 		securetty security sensors.d sensors3.conf services shells ssl subgid
 		subuid timidity tmpfiles.d tpm2-tss trusted-key.key ts.conf
 		vdpau_wrapper.cfg vulkan wgetrc whois.conf wpa_supplicant xattr.conf xdg
-		xinetd.d xml zsh
+		xinetd.d xml
 	)
 	etcbind "${_etc_binds[@]}"
 
 	robind \
 		/var/empty \
+		/var/cache/man \
 		/var/lib/alsa \
 		/var/lib/dbus \
 		"$XDG_RUNTIME_DIR/systemd/resolve"
@@ -485,7 +487,6 @@ sandbox_init_env() {
 		HOME \
 		TERM \
 		SHELL \
-		ZDOTDIR \
 		LANG \
 		LC_ALL \
 		LC_TIME \

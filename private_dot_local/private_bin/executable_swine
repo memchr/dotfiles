@@ -21,7 +21,7 @@ esac
 USAGE="\
 Usage: $0 PROGRAM [ARGUMENTS...]
 
-Flags:
+Arguments:
     -n          Use nvidia grahics (if available)
     -v PATHS    Bind colon separated PATHS to sandbox
     -p PREFIX   Use a wine prefix, the default is $_prefix
