@@ -151,7 +151,10 @@ main() {
 		fi
 		msg "$c"
 	done
-	echo rm -rf "${files[@]}"
+	if [[ -n "${files[*]}" ]]; then
+		echo rm -rf "${files[@]}"
+		rm -rf "${files[@]}"
+	fi
 }
 
 disk_usage() {
@@ -191,13 +194,8 @@ has() {
 }
 
 cleanup_pacman() {
-	if has yay; then
-		yes | LC_ALL=C yay -Scc
-	elif has paru; then
-		yes | LC_ALL=C paru -Scc
-	else
-		yes | LC_ALL=C sudo pacman -Scc
-	fi
+	yes | LC_ALL=C sudo pacman -Scc
+	printf "\n"
 }
 cleanup_pip() {
 	pip cache purge
