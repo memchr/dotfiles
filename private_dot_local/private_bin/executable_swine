@@ -22,7 +22,7 @@ USAGE="\
 Usage: $0 PROGRAM [ARGUMENTS...]
 
 Arguments:
-    -n          Use nvidia grahics (if available)
+    -n          Use NVIDIA graphics (if available)
     -v PATHS    Bind colon separated PATHS to sandbox
     -p PREFIX   Use a wine prefix, the default is $_prefix
 "

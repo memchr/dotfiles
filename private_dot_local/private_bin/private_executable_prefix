@@ -107,7 +107,7 @@ robind \
 	"$HOME/.config/dircolors"
 
 if [[ -n "$BWRAP_ARGS" ]]; then
-	DEBUG 1 "addtional bwrap args"
+	DEBUG 1 "additional bwrap args"
 	#shellcheck disable=SC2206
 	sandbox_args+=($BWRAP_ARGS)
 fi
