@@ -243,7 +243,7 @@ copy() {
 		dst="$(expand_index "$dst" "$@")"
 		DEBUG 2 "copy: ${src} -> ${dst}"
 		if [[ ! -e ${dst} ]]; then
-			mkdir -p "$(dirname "${src}")"
+			mkdir -p "$(dirname "${dst}")"
 			cp "${src}" "${dst}"
 		else
 			DEBUG 3 "copy: ${dst} exists"
