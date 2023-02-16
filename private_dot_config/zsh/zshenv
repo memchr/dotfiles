@@ -16,7 +16,6 @@ fi
 # SHELL fallback
 export SHELL=${SHELL:-$(which zsh)}
 
-
 # environment.d fallback
 if ((ENVIRONMENTD_LOADED != 1)); then
 	if [[ -d "$XDG_CONFIG_HOME/environment.d/" ]]; then
@@ -54,3 +53,12 @@ export PRO=~/src/projects
 export TEMPLATES=~/src/templates
 # disable telemetry from the evil company
 export DOTNET_CLI_TELEMETRY_OPTOUT=true
+
+# SSH socket
+if [[ ! -S $SSH_AUTH_SOCK ]] && [[ -S /run/user/$UID/ssh-agent.socket ]] {
+	export SSH_AUTH_SOCK=/run/user/$UID/ssh-agent.socket
+}
+
+
+# load fzf-tab previewers
+source $ZDOTDIR/lib/fzf/previewer.zsh

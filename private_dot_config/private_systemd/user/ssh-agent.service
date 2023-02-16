@@ -1,0 +1,13 @@
+[Unit]
+Description=SSH key agent
+
+[Service]
+Type=simple
+Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
+ExecStart=/usr/bin/ssh-agent -D -a $SSH_AUTH_SOCK
+
+[Install]
+WantedBy=default.target
+
+# NOTE: If you use GNOME, this environment variable is overridden by default
+# See https://wiki.archlinux.org/title/GNOME/Keyring#Disable_keyring_daemon_components
