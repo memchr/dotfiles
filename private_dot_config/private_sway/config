@@ -71,14 +71,15 @@ input type:touchpad {
 # Basics:
 #
     # Start a terminal
-    bindsym $mod+Return exec $term
+    bindsym $mod+return exec $term
 
     # Kill focused window
-    bindsym $mod+Shift+q kill
+    bindsym $mod+shift+q kill
     bindsym $mod+c kill
 
     # Start your launcher
     bindsym $mod+d exec $menu
+    bindsym alt+f2 exec $menu
 
     # Drag floating windows by holding down $mod and left mouse button.
     # Resize them with right mouse button + $mod.
@@ -88,10 +89,10 @@ input type:touchpad {
     floating_modifier $mod normal
 
     # Reload the configuration file
-    bindsym $mod+Shift+c reload
+    bindsym $mod+shift+c reload
 
     # Exit sway (logs you out of your Wayland session)
-    bindsym $mod+Shift+e exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -b 'Yes, exit sway' 'swaymsg exit'
+    bindsym $mod+shift+e exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -b 'Yes, exit sway' 'swaymsg exit'
 #
 # Moving around:
 #
@@ -101,21 +102,21 @@ input type:touchpad {
     bindsym $mod+$up focus up
     bindsym $mod+$right focus right
     # Or use $mod+[up|down|left|right]
-    bindsym $mod+Left focus left
-    bindsym $mod+Down focus down
-    bindsym $mod+Up focus up
-    bindsym $mod+Right focus right
+    bindsym $mod+left focus left
+    bindsym $mod+down focus down
+    bindsym $mod+up focus up
+    bindsym $mod+right focus right
 
-    # Move the focused window with the same, but add Shift
-    bindsym $mod+Shift+$left move left
-    bindsym $mod+Shift+$down move down
-    bindsym $mod+Shift+$up move up
-    bindsym $mod+Shift+$right move right
+    # Move the focused window with the same, but add shift
+    bindsym $mod+shift+$left move left
+    bindsym $mod+shift+$down move down
+    bindsym $mod+shift+$up move up
+    bindsym $mod+shift+$right move right
     # Ditto, with arrow keys
-    bindsym $mod+Shift+Left move left
-    bindsym $mod+Shift+Down move down
-    bindsym $mod+Shift+Up move up
-    bindsym $mod+Shift+Right move right
+    bindsym $mod+shift+Left move left
+    bindsym $mod+shift+Down move down
+    bindsym $mod+shift+Up move up
+    bindsym $mod+shift+Right move right
 #
 # Workspaces:
 #
@@ -131,16 +132,16 @@ input type:touchpad {
     bindsym $mod+9 workspace number 9
     bindsym $mod+0 workspace number 10
     # Move focused container to workspace
-    bindsym $mod+Shift+1 move container to workspace number 1
-    bindsym $mod+Shift+2 move container to workspace number 2
-    bindsym $mod+Shift+3 move container to workspace number 3
-    bindsym $mod+Shift+4 move container to workspace number 4
-    bindsym $mod+Shift+5 move container to workspace number 5
-    bindsym $mod+Shift+6 move container to workspace number 6
-    bindsym $mod+Shift+7 move container to workspace number 7
-    bindsym $mod+Shift+8 move container to workspace number 8
-    bindsym $mod+Shift+9 move container to workspace number 9
-    bindsym $mod+Shift+0 move container to workspace number 10
+    bindsym $mod+shift+1 move container to workspace number 1
+    bindsym $mod+shift+2 move container to workspace number 2
+    bindsym $mod+shift+3 move container to workspace number 3
+    bindsym $mod+shift+4 move container to workspace number 4
+    bindsym $mod+shift+5 move container to workspace number 5
+    bindsym $mod+shift+6 move container to workspace number 6
+    bindsym $mod+shift+7 move container to workspace number 7
+    bindsym $mod+shift+8 move container to workspace number 8
+    bindsym $mod+shift+9 move container to workspace number 9
+    bindsym $mod+shift+0 move container to workspace number 10
     # Note: workspaces can have any name you want, not just numbers.
     # We just use 1-10 as the default.
 #
@@ -161,7 +162,7 @@ input type:touchpad {
     bindsym $mod+f fullscreen
 
     # Toggle the current focus between tiling and floating mode
-    bindsym $mod+Shift+space floating toggle
+    bindsym $mod+shift+space floating toggle
 
     # Swap focus between the tiling area and the floating area
     bindsym $mod+space focus mode_toggle
@@ -175,7 +176,7 @@ input type:touchpad {
     # You can send windows there and get them back later.
 
     # Move the currently focused window to the scratchpad
-    bindsym $mod+Shift+minus move scratchpad
+    bindsym $mod+shift+minus move scratchpad
 
     # Show the next scratchpad window or hide the focused scratchpad window.
     # If there are multiple scratchpad windows, this command cycles through them.
@@ -194,14 +195,14 @@ mode "resize" {
     bindsym $right resize grow width 10px
 
     # Ditto, with arrow keys
-    bindsym Left resize shrink width 10px
-    bindsym Down resize grow height 10px
-    bindsym Up resize shrink height 10px
-    bindsym Right resize grow width 10px
+    bindsym left resize shrink width 10px
+    bindsym down resize grow height 10px
+    bindsym up resize shrink height 10px
+    bindsym right resize grow width 10px
 
     # Return to default mode
-    bindsym Return mode "default"
-    bindsym Escape mode "default"
+    bindsym return mode "default"
+    bindsym escape mode "default"
 }
 bindsym $mod+r mode "resize"
 
@@ -212,8 +213,8 @@ bindsym $mod+r mode "resize"
 	bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle
 	bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -10%
 	bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +10%
-	bindsym Shift+XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -5%
-	bindsym Shift+XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +5%
+	bindsym shift+XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -5%
+	bindsym shift+XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +5%
 	bindsym XF86AudioPlay exec playerctl play-pause
 	bindsym XF86AudioStop exec playerctl stop
 	bindsym XF86AudioPrev exec playerctl previous
@@ -222,8 +223,8 @@ bindsym $mod+r mode "resize"
 	# Brightness
 	bindsym XF86MonBrightnessDown exec brightnessctl -q -d amdgpu_bl0 set 10%-
 	bindsym XF86MonBrightnessUp exec brightnessctl -q -d amdgpu_bl0 set 10%+
-	bindsym Shift+XF86MonBrightnessDown exec brightnessctl -q -d amdgpu_bl0 set 5%-
-	bindsym Shift+XF86MonBrightnessUp exec brightnessctl -q -d amdgpu_bl0 set 5%+
+	bindsym shift+XF86MonBrightnessDown exec brightnessctl -q -d amdgpu_bl0 set 5%-
+	bindsym shift+XF86MonBrightnessUp exec brightnessctl -q -d amdgpu_bl0 set 5%+
 
 
 
@@ -236,7 +237,7 @@ bar {
 
     # When the status_command prints a new line to stdout, swaybar updates.
     # The default just shows the current date and time.
-    status_command while date +'%Y-%m-%d %l:%M:%S %p'; do sleep 1; done
+    status_command while date +'%a %b %d %Y %H:%M:%S'; do sleep 1; done
 
     colors {
         statusline #ffffff
