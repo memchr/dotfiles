@@ -12,6 +12,10 @@ sandbox_init
 sandbox_init_env
 sandbox_init_xdg
 
+sandbox_args+=(
+	--bind "$STEAM_HOME" "$HOME"
+	--setenv PATH "$HOME/.local/bin:/usr/bin:/usr/sbin:/bin:/sbin"
+)
 bind_base
 bind_dbus
 bind_gnome
@@ -20,10 +24,6 @@ bind_wayland
 bind_gpu
 bind_sound
 bind_shader_cache
-sandbox_args+=(
-	--bind "$STEAM_HOME" "$HOME"
-	--setenv PATH "$HOME/.local/bin:/usr/bin:/usr/sbin:/bin:/sbin"
-)
 robind \
 	"$XDG_CONFIG_HOME/dircolors"
 
@@ -59,6 +59,7 @@ bind \
 	"$XDG_DATA_HOME/Steam" \
 	"$XDG_CONFIG_HOME/cef_user_data" \
 	"$XDG_CONFIG_HOME/proton" \
+	"$XDG_CONFIG_HOME/a3unixlauncher" \
 	"$XDG_DATA_HOME/proton" \
 	"$HOME/.local/bin/proton" \
 	"$XDG_CONFIG_HOME/MangoHud" \
@@ -87,6 +88,14 @@ bind \
 	"$XDG_DATA_HOME/Terraria" \
 	"$XDG_DATA_HOME/vpltd" \
 	"$XDG_DATA_HOME/vulkan"
+
+robind \
+	"$XDG_CONFIG_HOME/Kvantum" \
+	"$XDG_CONFIG_HOME/qt5ct" \
+	"$XDG_CONFIG_HOME/qt6ct" \
+	"$XDG_CONFIG_HOME/gtk-2.0" \
+	"$XDG_CONFIG_HOME/gtk-3.0" \
+	"$XDG_CONFIG_HOME/gtk-4.0"
 
 # shellcheck disable=SC2154
 case "$__file__" in
